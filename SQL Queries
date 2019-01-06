@@ -1,0 +1,9 @@
+### Exercise 3-1
+### Retrieve the emplyee ID, first name, and last name for all bank employees. Sort by last name and then by first name
+
+show tables;
+DESC employee;
+SELECT emp_id, fname, lname
+FROM employee
+ORDER BY lname, fname
+
