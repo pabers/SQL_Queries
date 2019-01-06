@@ -7,3 +7,132 @@ SELECT emp_id, fname, lname
 FROM employee
 ORDER BY lname, fname
 
+### Exercise 3-2
+### Retrieve the account ID, customer ID and available balance for all accounts whose status equals 'ACTIVE' and whose
+### available balance is greater than $2,500
+
+mysql> SELECT account_id, cust_id, avail_balance
+    -> FROM account
+    -> WHERE (status='ACTIVE') & (avail_balance>2500);
+   
+### Exercise 3-3
+### Write a query against the account table that returns the IDs of the employees who opened the accounts.
+### Include a single row for each distinct employee.
+
+mysql> SELECT DISTINCT(open_emp_id)
+    -> FROM account;
+    
+### Exercise 3-4
+### Display the product_cd, cust_id, avail_balance where product type is an acount and order by product_cd then cust_id
+
+mysql> SELECT p.product_cd, a.cust_id, a.avail_balance
+    -> FROM product AS p INNER JOIN account AS a
+    -> ON p.product_cd = a.product_cd
+    -> WHERE p.product_type_cd = 'ACCOUNT'
+    -> ORDER BY p.product_cd,a.cust_id;
+    
+### Exercise 4-3
+### Construct a query that retrieves all acounts opened in 2002
+
+mysql> SELECT account_id, product_cd, cust_id, open_date, avail_balance
+    -> FROM account
+    -> WHERE open_date REGEXP '^[2][0][0][2]';
+    
+ ### Exercise 4-4
+ ### Construct a query that finds all nonbusiness customers whose last name contains an a in the second 
+ ### position and an e anywhere after the a.
+ 
+ mysql> SELECT *
+    -> FROM customer c INNER JOIN individual i
+    -> ON c.cust_id = i.cust_id
+    -> WHERE (c.cust_type_cd = 'I') & (i.lname LIKE '_a%e%');
+    
+### Exercise 5-1
+### Retrieve employee's id, firstname, lastname and the branch name
+
+mysql> SELECT e.emp_id, e.fname, e.lname,b.name
+    -> FROM employee e INNER JOIN branch b
+    -> ON e.assigned_branch_id = b.branch_id;
+    
+### Exercise 5-2
+### Write a query that returns the account ID for each nonbusiness customer with the customer's federal ID and the name of
+### the product on which the account is based
+
+mysql> SELECT a.account_id account, c.fed_id federal_number, p.name product
+    -> FROM customer c INNER JOIN account a
+    -> ON c.cust_id = a.cust_id
+    -> INNER JOIN product p
+    -> ON a.product_cd = p.product_cd;
+    
+### Exercise 5-3
+### Construct a query that finds all employees whose supervisor is assigned to a different department. Retrieve the
+### employees' ID, first name, and last name
+
+mysql> SELECT e.emp_id, e.fname, e.lname
+    -> FROM employee e INNER JOIN employee mgr
+    -> ON e.superior_emp_id = mgr.emp_id
+    -> WHERE e.dept_id != mgr.dept_id;
+    
+### Exercise 6-2
+### Write a compound querythat finds the first and last names of all individual customers along with the first and 
+### last names of all employees and sort by last name
+
+mysql> SELECT fname, lname
+    -> FROM individual
+    -> UNION
+    -> SELECT fname, lname
+    -> FROM employee;
+    -> ORDER BY lname
+    
+### Exercise 7-1
+### Write a subquery that returns the 17th through 25th characters of the string 'Please find the substring in this string'
+
+mysql> SELECT SUBSTRING('Please find the substring in this string',17,9)
+
+### Exercise 7-2
+### Write a query that returns the absolute value and sign (-1,0,1) of the number -25.76823.
+### Also return the number rounded to the nearest hundredth.
+
+mysql> SELECT ABS(-25.76823);
+mysql> SELECT SIGN(-25.76823);
+mysql> SELECT ROUND(-25.76823,2);
+
+### Exercise 7-3
+### Write a query to return just the month portion of the current date
+
+mysql> SELECT EXTRACT(MONTH FROM CURRENT_DATE());
+
+### Exercise 8-1
+### Construct a query that counts the number of rows in the account table
+
+mysql> SELECT COUNT(cust_id)
+    -> FROM account;
+    
+### Exercise 8-2
+### Modify your query from exercise 8-1 to count the number of accounts held by each customer
+### Show the customer ID and the number of accounts for each customer
+
+mysql> SELECT cust_id, COUNT(account_id)
+    -> FROM account
+    -> GROUP BY cust_id;
+    
+### Exercise 8-3
+### Modify your query from exercise 8-2 to include only those customers having at least two accounts
+
+mysql> SELECT cust_id, COUNT(account_id)
+    -> FROM account
+    -> GROUP BY cust_id
+    -> HAVING COUNT(account_id)>=2
+    
+### Exercise 8-4
+### Find the total available balance by product and branch where there is more than one
+### account per product and branch. Order the results by total balance (highest to lowest).
+
+mysql> SELECT product_cd product, open_branch_id branch, SUM(avail_balance) total_avail_balance
+    -> FROM account
+    -> GROUP BY product_cd, open_branch_id
+    -> HAVING COUNT(product_cd) > 1
+    -> ORDER BY total_avail_balance DESC;
+    
+### Exercise 9-1
+### 
