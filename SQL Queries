@@ -135,4 +135,44 @@ mysql> SELECT product_cd product, open_branch_id branch, SUM(avail_balance) tota
     -> ORDER BY total_avail_balance DESC;
     
 ### Exercise 9-1
-### 
+### Construct a query against the account table that uses a filter condition with a noncorrelated subquery
+### against the product table to find all loan accounts. Retrieve the account ID, product code, customer ID, 
+### and available balance.
+
+mysql> SELECT a.account_id, a.product_cd, a.cust_id, a.avail_balance
+    -> FROM account a
+    -> WHERE a.product_cd IN (SELECT p.product_cd FROM product p WHERE p.product_type_cd = 'LOAN');
+    
+### Exercise 9-2
+### Rework the query from Exercise 9-1 using a correlated subquery against the product table to achieve the same results
+
+mysql> SELECT a.account_id, a.product_cd, a.cust_id, a.avail_balance
+    -> FROM account a
+    -> WHERE EXISTS (SELECT 1
+    ->    FROM product p
+    ->    WHERE p.product_cd = a.product_cd
+    ->    AND p.product_type_cd = 'LOAN')
+    
+### Exercise 9-3
+### Show the experience level of each employee in a new column where 'trainee' is between 01/01/2004 and 31/12/2005,
+### 'worker' is between 01/01/2002 and /31/12/2003 and 'mentor' is between 01/01/2000 and 31/12/2001
+### Give the subquery the alias levels and include the employee ID, first name, last name and experience level.
+
+mysql> SELECT e.emp_id, e.fname, e.lname, levels.name
+    -> FROM employee e INNER JOIN (SELECT 'trainee' name, '2004-01-01' start_dt, '2005-12-31' end_dt
+    -> UNION ALL
+    -> SELECT 'worker' name, '2002-01-01' start_dt, '2003-12-31' end_dt
+    -> UNION ALL
+    -> SELECT 'mentor' name, '2000-01-01' start_dt, '2001-12-31' end_dt) levels
+    -> ON e.start_date BETWEEN levels.start_dt AND end_dt;
+    
+### Exercise 9-4
+### Construct a query against the employee table that retrieves the emploee ID, first name, and last name, along with
+### the names of the department and brnach to which the employee is assigned. Do not join any tables.
+
+mysql> SELECT e.emp_id, e.fname, e.lname,
+    -> (SELECT d.name FROM department d
+    -> WHERE d.dept_id = e.dept_id) dept_name,
+    -> (SELECT b.name FROM branch b
+    -> WHERE b.branch_id = e.assigned_branch_id) branch_name
+    -> FROM employee e;
