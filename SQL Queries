@@ -176,3 +176,210 @@ mysql> SELECT e.emp_id, e.fname, e.lname,
     -> (SELECT b.name FROM branch b
     -> WHERE b.branch_id = e.assigned_branch_id) branch_name
     -> FROM employee e;
+
+### Exercise 10-1
+### Write a query that returns all product names along with the accounts based on that product. 
+### Include all products, even if no accounts have been opened for that product.
+
+mysql> SELECT a.account_id, p.name, p.product_cd, p.product_type_cd
+    -> FROM product p LEFT OUTER JOIN account a
+    -> ON p.product_cd = a.product_cd
+    -> ORDER BY p.product_cd, account_id;
+    
+### Exercise 10-2
+### Reformulate your query from exercise 10-1 to use the other outer join type to obtain the same results.
+
+mysql> SELECT a.account_id, p.name, p.product_cd, p.product_type_cd
+    -> FROM account a RIGHT OUTER JOIN product p
+    -> ON p.product_cd = a.product_cd
+    -> ORDER BY p.product_cd, account_id;
+    
+### Exercise 10-3
+### Outer-join the account table to both the individual and business tables such that the result set
+### contains one row per account. Columns to include are account_id, product_cd, fname, lname, business name
+
+mysql> SELECT a.account_id, a.product_cd, i.fname, i.lname, b.name
+    -> FROM account a LEFT OUTER JOIN individual i
+    -> ON a.cust_id = i.cust_id
+    -> LEFT OUTER JOIN business b
+    -> ON a.cust_id = b.cust_id
+    -> ORDER BY a.cust_id;
+    
+### Exercise 10-4
+### Devise a query that returns the set {1,2,3,4...95,96,97,98,99}
+
+mysql> SELECT (ones.num+tens.num)
+    -> FROM
+    -> (SELECT 0 num UNION ALL
+    -> SELECT 1 num UNION ALL
+    -> SELECT 2 num UNION ALL
+    -> SELECT 3 num UNION ALL
+    -> SELECT 4 num UNION ALL
+    -> SELECT 5 num UNION ALL
+    -> SELECT 6 num UNION ALL
+    -> SELECT 7 num UNION ALL
+    -> SELECT 8 num UNION ALL
+    -> SELECT 9 num) ones
+    -> CROSS JOIN
+    -> (SELECT 0 num UNION ALL
+    -> SELECT 10 num UNION ALL
+    -> SELECT 20 num UNION ALL
+    -> SELECT 30 num UNION ALL
+    -> SELECT 40 num UNION ALL
+    -> SELECT 50 num UNION ALL
+    -> SELECT 60 num UNION ALL
+    -> SELECT 70 num UNION ALL
+    -> SELECT 80 num UNION ALL
+    -> SELECT 90 num) tens
+    
+### Exercise 11-1
+### Select emp_id and use a search case expression to display if they are management or operations
+
+mysql> SELECT emp_id,
+    -> CASE
+    -> WHEN title IN ('President','Vice President','Treasurer','Loan Manager')
+    -> THEN 'Management'
+    -> WHEN title IN ('Operations Manager','Head Teller','Teller')
+    -> THEN 'Operations'
+    -> ELSE 'Unknown'
+    -> END
+    -> FROM employee;
+    
+### Exercise 11-2
+### Create a quert that returns the count for how many accounts are in each branch pivoted into columns
+
+mysql> SELECT
+    -> SUM(CASE WHEN open_branch_id = 1 THEN 1 ELSE 0 END) branch_1,
+    -> SUM(CASE WHEN open_branch_id = 2 THEN 1 ELSE 0 END) branch_2,
+    -> SUM(CASE WHEN open_branch_id = 3 THEN 1 ELSE 0 END) branch_3,
+    -> SUM(CASE WHEN open_branch_id = 4 THEN 1 ELSE 0 END) branch_4
+    -> FROM account;
+    
+### Exercise 12-1
+### Generate a transaction to transfer $50 from Frank Tucker's money market account to his checking account.
+
+mysql> START TRANSACTION;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> SELECT i.cust_id,
+    -> (SELECT a.account_id FROM account a
+    -> WHERE a.cust_id = i.cust_id AND a.product_cd = 'MM') MM_id,
+    -> (SELECT a.account_id FROM account a
+    -> WHERE a.cust_id = i.cust_id AND a.product_cd = 'chk') chk_id
+    -> INTO @cust_id, @MM_id, @chk_id
+    -> FROM individual i
+    -> WHERE i.fname = 'Frank' AND i.lname = 'Tucker';
+Query OK, 1 row affected (0.00 sec)
+
+mysql> INSERT INTO transaction (txn_id,txn_date,account_id,txn_type_cd,amount)
+    -> VALUES (NULL,now(),@MM_id,'CDT',-50)
+    -> ;
+Query OK, 1 row affected (0.00 sec)
+
+mysql> INSERT INTO transaction (txn_id,txn_date,account_id,txn_type_cd,amount)
+    -> VALUES (NULL,now(),@chk_id,'CDT',50)
+    -> ;
+Query OK, 1 row affected (0.00 sec)
+
+mysql> UPDATE account
+    -> SET last_activity_date = DATE_FORMAT(NOW(),'%Y-%m-%d'),
+    -> avail_balance = avail_balance -50
+    -> WHERE account_id = @MM_id;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> UPDATE account
+    -> SET last_activity_date = DATE_FORMAT(NOW(),'%Y-%m-%d'),
+    -> avail_balance = avail_balance + 50
+    -> WHERE account_id = @chk_id;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> COMMIT;
+Query OK, 0 rows affected (0.02 sec)
+
+### Exercise 13-1
+### Modify the account table so that customers may not have more than one account for each product
+
+mysql> ALTER TABLE account
+    -> ADD CONSTRAINT UNIQUE(cust_id,product_cd);
+    
+### Exercise 14-1
+### Create a view that queries the employee table and generates an output of two columns, supervisor name and
+### employee name with no where clause
+
+mysql> CREATE VIEW supervisor_employee_view
+    -> (supervisor_name,
+    -> employee_name)
+    -> AS
+    -> SELECT CONCAT(mgr.fname,' ',mgr.lname) supervisor_name, CONCAT(e.fname,' ',e.lname) employee_name
+    -> FROM employee e LEFT OUTER JOIN employee mgr
+    -> ON e.superior_emp_id = mgr.emp_id
+    -> ORDER BY e.emp_id;
+Query OK, 0 rows affected (0.07 sec)
+
+mysql> SELECT *
+    -> FROM supervisor_employee_view;
+    
+### Exercise 14-2
+### The bank president would like to have a report showing the name and city of each branch,
+### along with the total balances of all accounts opened at the branch. Create a view to generate the data.
+
+mysql> CREATE VIEW branch_total_balance_view
+    -> (branch_id,branch_name,city,state,total_balance)
+    -> AS
+    -> SELECT b.branch_id,b.name branch_name,b.city,b.state,SUM(a.avail_balance)
+    -> FROM branch b INNER JOIN account a
+    -> ON b.branch_id = a.open_branch_id
+    -> GROUP BY a.open_branch_id
+    -> ORDER BY b.branch_id;
+Query OK, 0 rows affected (0.06 sec)
+
+mysql> SELECT *
+    -> FROM branch_total_balance_view;
+    
+### Exercise 15-1
+### Write a query that lists all of the indexes in the bank schema. Include the table names.
+
+mysql> SELECT DISTINCT table_name, index_name
+    -> FROM information_schema.statistics
+    -> WHERE table_schema = 'bank';
+    
+### Personal Exercise
+### Write a query that generates a CSV file of a query of your choice.
+
+mysql> SELECT 'Account_Num','Product_Code','Cust_ID','Avail_Balance'
+    -> UNION ALL
+    -> SELECT account_id,product_cd,cust_id,avail_balance
+    -> INTO OUTFILE 'C:\\Users\\Paul\\Desktop\\sql_outfile_test2.csv'
+    -> FIELDS TERMINATED BY ','
+    -> FROM account;
+Query OK, 25 rows affected (0.01 sec)
+
+### And to check that it worked, I imported the file into python with pandas and compared the query with pandas.head
+
+mysql> SELECT account_id,product_cd,cust_id,avail_balance
+    -> FROM account
+    -> LIMIT 5;
++------------+------------+---------+---------------+
+| account_id | product_cd | cust_id | avail_balance |
++------------+------------+---------+---------------+
+|          1 | CHK        |       1 |       1057.75 |
+|          2 | SAV        |       1 |        500.00 |
+|          3 | CD         |       1 |       3000.00 |
+|          4 | CHK        |       2 |       2258.02 |
+|          5 | SAV        |       2 |        200.00 |
++------------+------------+---------+---------------+
+5 rows in set (0.00 sec)
+
+>>> import pandas as pd
+>>> test = pd.read_csv('sql_outfile_test2.csv')
+>>> test.head()
+   Account_Num Product_Code  Cust_ID  Avail_Balance
+0            1          CHK        1     1057.75000
+1            2          SAV        1      500.00000
+2            3           CD        1     3000.00000
+3            4          CHK        2     2258.02002
+4            5          SAV        2      200.00000
+
+### Yep, it appears to have worked!!!
